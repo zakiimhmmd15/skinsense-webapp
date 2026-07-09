@@ -25,10 +25,27 @@ Dikembangkan sebagai bagian dari Penelitian Ilmiah (skripsi), 2026.
 | Recall kelas Normal | 58.0%                              |
 | Format deploy     | ONNX (FP32), dijalankan via onnxruntime-web (WASM) |
 
-Perbandingan lengkap 9 kombinasi (3 arsitektur × 3 class weight) ada di
-`notebooks/04_train_compare_export.ipynb`.
+Perbandingan lengkap 9 kombinasi (3 arsitektur × 3 class weight) ada di `notebooks/klafikasi-tipe-kulit-wajah-final.ipynb`.
 
 ## Struktur Folder
+
+```text
+.
+├── docs/                      # Dokumentasi proyek
+│   ├── keterbatasan_data.md
+│   └── panduan_jarak_wajah.md
+├── notebooks/                 # Jupyter notebook training model
+│   └── klafikasi-tipe-kulit-wajah-final.ipynb
+└── webapp/                    # Kode sumber aplikasi web (frontend)
+    ├── css/                   # Styling aplikasi
+    ├── js/                    # Logika aplikasi (kamera, inferensi, dsb.)
+    ├── SkinSense/             # Aset desain dan UI/UX (Design.md)
+    ├── densenet121_skin.onnx  # Model ONNX yang sudah dilatih
+    ├── index.html             # Halaman antarmuka utama
+    ├── model_info.json        # Metadata model
+    ├── serve.js               # Script server pengembangan lokal
+    └── vercel.json            # Konfigurasi deployment Vercel (CORS/Headers)
+```
 
 ## Menjalankan Web App Secara Lokal
 
