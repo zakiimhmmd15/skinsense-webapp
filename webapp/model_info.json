@@ -1,0 +1,23 @@
+{
+  "model": "densenet121_skin.onnx",
+  "architecture": "DenseNet121",
+  "classes": [
+    "combination",
+    "dry",
+    "normal",
+    "oily"
+  ],
+  "input_size": 224,
+  "mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "accuracy": 0.79,
+  "f1_macro": 0.7845
+}

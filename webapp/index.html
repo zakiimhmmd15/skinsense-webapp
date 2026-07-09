@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html class="light" lang="id">
+
+<head>
+  <script>
+    if (sessionStorage.getItem('splashShown') === 'true') {
+      document.documentElement.classList.add('skip-splash');
+    }
+  </script>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>SkinSense — Klasifikasi Tipe Kulit Wajah</title>
+  <meta name="description"
+    content="Analisis tipe kulit wajah Anda secara instan menggunakan teknologi kecerdasan buatan DenseNet121. Semua proses berjalan di browser Anda — privasi terjamin." />
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><!-- Google Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;500;600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet" /><!-- onnxruntime-web CDN (WebAssembly backend) -->
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js"></script>
+  <script
+    id="tailwind-config">  tailwind.config = { darkMode: "class", theme: { extend: { colors: { "on-primary-fixed-variant": "#004f50", "surface-container-highest": "#c7e7ff", "error-container": "#ffdad6", "outline": "#6f7979", "on-secondary-container": "#3c6c6e", "tertiary-fixed": "#dce5d9", "on-secondary-fixed-variant": "#1a4e50", "secondary": "#356668", "primary-container": "#2d7d7d", "on-surface-variant": "#3f4948", "tertiary-container": "#6b746a", "on-error-container": "#93000a", "on-background": "#001e2e", "primary-fixed": "#a4f0ef", "on-tertiary": "#ffffff", "on-secondary": "#ffffff", "surface-variant": "#c7e7ff", "on-tertiary-fixed-variant": "#404940", "primary": "#016464", "on-primary-container": "#dafffe", "inverse-primary": "#88d3d3", "tertiary-fixed-dim": "#c0c9be", "background": "#f6faff", "surface-container": "#dff0ff", "surface-dim": "#b5dfff", "on-tertiary-fixed": "#161d16", "surface-bright": "#f6faff", "surface-container-lowest": "#ffffff", "secondary-container": "#b9ecee", "on-primary": "#ffffff", "on-primary-fixed": "#002020", "on-surface": "#001e2e", "inverse-on-surface": "#e5f2ff", "on-secondary-fixed": "#002021", "surface-container-low": "#eaf5ff", "secondary-fixed": "#b9ecee", "outline-variant": "#bec9c8", "on-error": "#ffffff", "primary-fixed-dim": "#88d3d3", "inverse-surface": "#00344c", "tertiary": "#535b53", "error": "#ba1a1a", "surface-container-high": "#d3ebff", "surface": "#f6faff", "surface-tint": "#0e6969", "on-tertiary-container": "#f1faee", "secondary-fixed-dim": "#9ecfd1" }, borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" }, spacing: { "stack-sm": "12px", "gutter": "16px", "container-padding": "24px", "stack-md": "24px", "stack-lg": "48px", "base": "8px" }, fontFamily: { "headline-sm": ["Plus Jakarta Sans"], "display-lg": ["Plus Jakarta Sans"], "display-lg-mobile": ["Plus Jakarta Sans"], "label-md": ["Inter"], "body-lg": ["Inter"], "body-sm": ["Inter"], "headline-md": ["Plus Jakarta Sans"], "body-md": ["Inter"] }, fontSize: { "headline-sm": ["20px", { lineHeight: "28px", fontWeight: "600" }], "display-lg": ["40px", { lineHeight: "48px", letterSpacing: "-0.02em", fontWeight: "700" }], "display-lg-mobile": ["32px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }], "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "600" }], "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }], "body-sm": ["14px", { lineHeight: "20px", fontWeight: "400" }], "headline-md": ["24px", { lineHeight: "32px", fontWeight: "600" }], "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }] } } } }</script>
+  <!-- Custom CSS (Material Symbols, routing, drag-over, bento cards, animations) -->
+  <link rel="stylesheet" href="css/style.css" /><!-- Splash Screen CSS (harus dimuat sebelum body dirender) -->
+  <link rel="stylesheet" href="css/splash.css" />
+  <style>
+    /* ── Camera feature styles ── */
+    #camera-video {
+      width: 100%;
+      border-radius: 0.75rem;
+      background: #000;
+      object-fit: cover;
+      max-height: 280px;
+    }
+
+    #capture-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    @keyframes captureFlash {
+      0% {
+        box-shadow: inset 0 0 0 0 rgba(255, 255, 255, 0.95);
+      }
+
+      50% {
+        box-shadow: inset 0 0 0 12px rgba(255, 255, 255, 0.5);
+      }
+
+      100% {
+        box-shadow: inset 0 0 0 0 rgba(255, 255, 255, 0);
+      }
+    }
+
+    .capture-flash {
+      animation: captureFlash 0.3s ease;
+    }
+
+    /* ── Analysis Loading Overlay ── */
+    #analysis-loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(246, 250, 255, 0.96);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: none;
+      /* tampil via JS */
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      z-index: 20;
+      border-radius: inherit;
+    }
+
+    /* Lingkaran spinner utama */
+    .analysis-spinner {
+      width: 64px;
+      height: 64px;
+      position: relative;
+    }
+
+    .analysis-spinner::before,
+    .analysis-spinner::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 3px solid transparent;
+    }
+
+    .analysis-spinner::before {
+      border-top-color: #016464;
+      border-right-color: #016464;
+      animation: spin-outer 1s linear infinite;
+    }
+
+    .analysis-spinner::after {
+      inset: 8px;
+      border-top-color: #88d3d3;
+      animation: spin-inner 0.7s linear infinite reverse;
+    }
+
+    @keyframes spin-outer {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes spin-inner {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Titik-titik animasi di akhir teks */
+    .loading-dots::after {
+      content: '';
+      animation: dots 1.2s steps(4, end) infinite;
+    }
+
+    @keyframes dots {
+      0% {
+        content: '';
+      }
+
+      25% {
+        content: '.';
+      }
+
+      50% {
+        content: '..';
+      }
+
+      75% {
+        content: '...';
+      }
+    }
+
+    /* Fade in/out teks loading */
+    #loading-step-text {
+      transition: opacity 0.3s ease;
+    }
+
+    #loading-step-text.fade-out {
+      opacity: 0;
+    }
+
+    /* pastikan upload-default-state tampil sebagai flex saat tidak hidden */
+    #upload-default-state:not(.hidden) {
+      display: flex !important;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #camera-view-state:not(.hidden) {
+      display: flex !important;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      padding: 1rem;
+    }
+  </style>
+</head>
+
+<body class="font-body-md text-on-background flex flex-col">
+  <!-- ============================================================ --><!--  SPLASH SCREEN                                               --><!--  Overlay full-screen yang muncul 2.5 detik lalu fade-out.    --><!--  Elemen ini akan dihapus dari DOM oleh js/splash.js.         --><!-- ============================================================ -->
+  <div id="splash-screen"><!-- Dekorasi: lingkaran blur di background untuk efek ambient glow -->
+    <div class="splash-deco splash-deco--1"></div>
+    <div class="splash-deco splash-deco--2"></div><!-- Konten utama splash: logo, brand, tagline, loading bar -->
+    <div class="splash-content"><!-- Logo: lingkaran gradien teal dengan ikon Material 'face' -->
+      <div class="splash-logo-circle"><span class="material-symbols-outlined">spa</span></div><!-- Nama brand -->
+      <p class="splash-brand">SkinSense</p><!-- Tagline deskriptif -->
+      <p class="splash-tagline">Klasifikasi Tipe Kulit Wajah · AI-Powered</p>
+      <!-- Loading bar: track (latar) + fill (gradien animasi) -->
+      <div class="splash-loader-track">
+        <div class="splash-loader-fill"></div>
+      </div>
+    </div>
+  </div>
+  <!-- ============================================================ --><!--  TOP APP BAR (sticky, shared across all pages)               --><!-- ============================================================ -->
+  <header class="w-full top-0 sticky bg-surface/90 backdrop-blur-md z-50 border-b border-surface-container">
+    <div class="flex items-center justify-between px-container-padding py-4 w-full max-w-7xl mx-auto"> <!-- Brand -->
+      <div class="flex items-center gap-2"> <span class="material-symbols-outlined text-primary font-bold"
+          style="font-variation-settings:'FILL' 1;">spa</span> <span
+          class="font-headline-sm text-headline-sm text-primary hidden sm:block">SkinSense</span> </div>
+      <!-- Desktop Nav -->
+      <nav class="hidden md:flex gap-8 items-center" id="desktop-nav"> <a href="#"
+          class="font-label-md text-label-md nav-active transition-colors" data-page="deteksi"
+          id="nav-deteksi">Deteksi</a> <a href="#"
+          class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors"
+          data-page="tipe-kulit" id="nav-tipe-kulit">Tipe Kulit</a> <a href="#"
+          class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors"
+          data-page="tentang" id="nav-tentang">Tentang</a> </nav>
+    </div>
+  </header>
+  <!-- ============================================================ --><!--  MAIN CONTENT (pages swap here)                              --><!-- ============================================================ -->
+  <main class="flex-grow"> <!-- ╔══════════════════════════════════════════════════════════╗ -->
+    <!-- ║  PAGE: DETEKSI                                           ║ -->
+    <!-- ╚══════════════════════════════════════════════════════════╝ -->
+    <section id="page-deteksi" class="page-section active">
+      <div class="flex flex-col items-center px-container-padding py-stack-lg max-w-4xl mx-auto w-full"> <!-- Hero -->
+        <div class="text-center mb-stack-lg w-full">
+          <h1
+            class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-on-surface mb-stack-sm">
+            Klasifikasi Tipe Kulit Wajah </h1>
+          <p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto text-center px-2"> Analisis tipe
+            kulit Anda
+            secara instan menggunakan teknologi kecerdasan buatan. </p>
+        </div> <!-- Upload Zone -->
+        <section class="w-full max-w-2xl mb-stack-lg">
+          <div
+            class="relative bg-surface-container-lowest border-2 border-dashed border-outline-variant rounded-lg transition-all duration-300 shadow-[0_4px_20px_rgba(45,125,125,0.05)] min-h-[260px] sm:min-h-[320px] md:min-h-[380px] overflow-hidden"
+            id="drop-zone"> <!-- STATE 1: Default upload state -->
+            <div id="upload-default-state" class="flex flex-col items-center justify-center p-stack-lg h-full w-full">
+              <div
+                class="w-24 h-24 bg-secondary-container rounded-full flex items-center justify-center mb-stack-md group-hover:scale-110 transition-transform duration-300">
+                <span class="material-symbols-outlined text-primary text-[48px]"
+                  style="font-variation-settings:'FILL' 0;">photo_camera</span>
+              </div>
+              <h2 class="font-headline-sm text-headline-sm text-on-surface mb-2">Tarik &amp; Lepas Foto</h2>
+              <p class="font-body-sm text-body-sm text-on-surface-variant mb-stack-md text-center"> Untuk hasil optimal,
+                cuci muka
+                terlebih dahulu, tunggu 15 - 30 menit, lalu ambil foto tanpa riasan (makeup) dengan pencahayaan yang
+                cukup terang
+                (JPG, PNG). </p> <input accept="image/*" class="hidden" id="file-input" type="file" />
+              <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto justify-center items-center"> <button
+                  class="bg-primary text-on-primary font-label-md px-6 py-3 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-md flex items-center gap-2 w-full sm:w-auto justify-center"
+                  id="btn-pilih-foto"> <span class="material-symbols-outlined text-[18px]">upload_file</span> Pilih Foto
+                </button> <button
+                  class="bg-secondary-container text-on-secondary-container font-label-md px-6 py-3 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-md flex items-center gap-2 w-full sm:w-auto justify-center"
+                  id="btn-buka-kamera"> <span class="material-symbols-outlined text-[18px]">photo_camera</span> Buka
+                  Kamera </button> </div>
+            </div> <!-- STATE 2: Camera live view (hidden by default) -->
+            <div id="camera-view-state" class="hidden flex-col items-center justify-center p-4 h-full w-full">
+              <!-- Loading -->
+              <div id="camera-loading" class="hidden flex-col items-center gap-3 py-12"> <span
+                  class="material-symbols-outlined text-primary text-[40px] animate-spin">progress_activity</span> <span
+                  class="font-body-sm text-body-sm text-on-surface-variant">Memulai kamera...</span> </div>
+              <!-- Error izin ditolak -->
+              <div id="camera-perm-error" class="hidden flex-col items-center gap-3 py-8 text-center"> <span
+                  class="material-symbols-outlined text-error text-[48px]"
+                  style="font-variation-settings:'FILL' 1;">videocam_off</span>
+                <p class="font-headline-sm text-headline-sm text-error">Akses Kamera Ditolak</p>
+                <p class="font-body-sm text-body-sm text-on-surface-variant max-w-xs">Izinkan akses kamera di browser
+                  Anda, lalu klik tombol di bawah untuk mencoba lagi.</p>
+                <div class="flex gap-3 mt-2"> <button
+                    class="bg-primary text-on-primary font-label-md px-6 py-3 rounded-full hover:opacity-90 transition-all"
+                    id="btn-retry-camera">Coba Lagi</button> <button
+                    class="bg-surface-container text-on-surface-variant font-label-md px-6 py-3 rounded-full hover:opacity-80 transition-all"
+                    id="btn-cancel-camera-err">Batal</button> </div>
+              </div> <!-- Video live + overlay panduan v2 (oval dinamis mengikuti wajah) -->
+              <div id="camera-stage" style="position:relative; width:100%; display:block;">
+                <video id="camera-video" autoplay playsinline muted class="hidden w-full rounded-lg"
+                  style="max-height:280px; object-fit:cover; display:block;"></video>
+                <!-- Canvas menutupi video, untuk menggambar oval dinamis -->
+                <canvas id="face-guide-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%;
+                               pointer-events:none;"></canvas>
+                <!-- Label status -->
+                <div id="face-guide-status" style="position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
+                            background:rgba(0,0,0,0.6); color:#fff; padding:4px 12px;
+                            border-radius:9999px; font-size:13px; white-space:nowrap;
+                            pointer-events:none;">Posisikan wajah di dalam bingkai</div>
+              </div>
+              <!-- Kontrol kamera -->
+              <div id="camera-controls-bar" class="hidden items-center gap-3 mt-4 flex-wrap justify-center w-full">
+                <button
+                  class="bg-primary text-on-primary font-label-md px-6 py-3 rounded-full flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-md"
+                  id="capture-btn" disabled> <span class="material-symbols-outlined text-[18px]">camera</span> Ambil
+                  Foto </button> <button
+                  class="bg-surface-container text-on-secondary-container font-label-md px-5 py-3 rounded-full flex items-center gap-2 hover:opacity-80 transition-all"
+                  id="flip-btn"> <span class="material-symbols-outlined text-[18px]">flip_camera_ios</span> Balik
+                </button> <button
+                  class="bg-error/10 text-error font-label-md px-5 py-3 rounded-full flex items-center gap-2 hover:bg-error/20 transition-all"
+                  id="btn-cancel-camera"> <span class="material-symbols-outlined text-[18px]">close</span> Batal
+                </button> </div>
+            </div> <!-- STATE 3: Preview (hidden by default, overlay absolut) -->
+            <div class="absolute inset-0 bg-surface-container-lowest hidden flex-col items-center justify-center p-4"
+              id="preview-container"> <img alt="Preview wajah" class="w-full h-full object-contain rounded-lg"
+                id="image-preview" src="" /> <button
+                class="absolute top-4 right-4 bg-error text-on-error p-2 rounded-full shadow-lg" id="remove-btn"
+                aria-label="Hapus foto"> <span class="material-symbols-outlined">close</span> </button> </div>
+            <!-- STATE 4: Analysis Loading Overlay (absolute, di atas preview) -->
+            <div id="analysis-loading-overlay">
+              <div class="analysis-spinner"></div>
+              <div class="text-center">
+                <p id="loading-step-text" class="font-body-md text-body-md text-primary font-semibold loading-dots">
+                  Memeriksa wajah</p>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Harap tunggu sebentar</p>
+              </div>
+            </div>
+          </div>
+        </section>
+        <!-- Error / Warning Message Area -->
+        <div id="analysis-message-container" class="w-full max-w-2xl mb-4 hidden">
+          <div
+            class="bg-[#ffdad6] text-[#93000a] border border-[#ba1a1a]/20 rounded-lg p-4 flex items-start gap-3 w-full">
+            <span class="material-symbols-outlined text-[#ba1a1a] text-[20px] flex-shrink-0 mt-0.5">warning</span>
+            <span id="analysis-message-text" class="font-body-sm text-body-sm text-[#93000a]"></span>
+          </div>
+        </div>
+        <!-- Analyze Button -->
+        <div class="w-full flex justify-center mb-stack-lg"> <button
+            class="bg-primary-container text-on-primary-container opacity-50 cursor-not-allowed font-label-md text-body-md px-8 sm:px-12 py-4 rounded-full flex items-center gap-2 transition-all duration-300 w-full sm:w-auto justify-center"
+            disabled id="analyze-btn"> <span class="material-symbols-outlined">auto_fix</span> Analisis Sekarang
+          </button> </div> <!-- ONNX Model status indicator -->
+        <div id="model-status" class="w-full max-w-2xl mb-stack-md">
+          <div class="flex items-center justify-center gap-2 text-on-surface-variant font-body-sm text-body-sm"> <span
+              class="material-symbols-outlined text-[16px] animate-spin text-primary"
+              id="model-status-icon">progress_activity</span> <span id="model-status-text">Memuat model AI (±3 detik
+              pertama kali)...</span> </div>
+        </div> <!-- ── RESULT SECTION (hidden until inference done) ─────── -->
+        <section class="w-full max-w-2xl hidden result-appear overflow-hidden" id="result-section">
+          <div
+            class="bg-surface-container-lowest rounded-lg shadow-[0_4px_20px_rgba(45,125,125,0.08)] border border-primary/10 p-stack-md">
+            <!-- Result header -->
+            <div class="flex items-center gap-3 mb-stack-md">
+              <div class="w-12 h-12 bg-secondary-container rounded-full flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-primary text-[28px]"
+                  style="font-variation-settings:'FILL' 1;">verified</span>
+              </div>
+              <div>
+                <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">Hasil Analisis
+                </p>
+                <h2 class="font-headline-md text-headline-md text-primary" id="result-title">—</h2>
+              </div>
+            </div> <!-- Description -->
+            <p class="font-body-md text-body-md text-on-surface-variant mb-stack-md" id="result-description"></p>
+            <!-- Probability bars -->
+            <div class="space-y-3 mb-stack-md">
+              <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">Probabilitas per
+                Kelas</p>
+              <div id="prob-bars" class="space-y-2"> <!-- filled by JS --> </div>
+            </div> <!-- Privacy note -->
+            <div class="flex items-start gap-2 bg-surface-container rounded p-3 mt-2"> <span
+                class="material-symbols-outlined text-primary text-[18px] mt-0.5"
+                style="font-variation-settings:'FILL' 1;">lock</span>
+              <p class="font-body-sm text-body-sm text-on-surface-variant"> Foto Anda <strong>tidak dikirim ke
+                  server</strong> mana pun. Seluruh proses analisis berjalan di browser Anda. </p>
+            </div> <!-- Reset button -->
+            <div class="mt-stack-md flex justify-center"> <button
+                class="bg-secondary-container text-on-secondary-container font-label-md px-8 py-3 rounded-full hover:opacity-80 active:scale-95 transition-all flex items-center gap-2"
+                id="reset-btn"> <span class="material-symbols-outlined text-[18px]">refresh</span> Coba Foto Lain
+              </button> </div>
+          </div>
+        </section> <!-- Educational Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-stack-md w-full mt-stack-lg" id="edu-cards">
+          <div
+            class="bg-surface-container-lowest p-stack-md rounded-lg shadow-[0_4px_20px_rgba(45,125,125,0.05)] border border-primary/5">
+            <span class="material-symbols-outlined text-primary mb-2"
+              style="font-variation-settings:'FILL' 1;">verified_user</span>
+            <h3 class="font-headline-sm text-[16px] mb-1">Aman &amp; Privat</h3>
+            <p class="font-body-sm text-body-sm text-on-surface-variant">Foto Anda hanya diproses secara lokal di
+              browser. Tidak ada data yang dikirim ke server.</p>
+          </div>
+          <div
+            class="bg-surface-container-lowest p-stack-md rounded-lg shadow-[0_4px_20px_rgba(45,125,125,0.05)] border border-primary/5">
+            <span class="material-symbols-outlined text-primary mb-2">speed</span>
+            <h3 class="font-headline-sm text-[16px] mb-1">Hasil Instan</h3>
+            <p class="font-body-sm text-body-sm text-on-surface-variant">Dapatkan laporan klasifikasi kulit dalam waktu
+              kurang dari 5 detik.</p>
+          </div>
+          <div
+            class="bg-surface-container-lowest p-stack-md rounded-lg shadow-[0_4px_20px_rgba(45,125,125,0.05)] border border-primary/5">
+            <span class="material-symbols-outlined text-primary mb-2">lightbulb</span>
+            <h3 class="font-headline-sm text-[16px] mb-1">Tips Personal</h3>
+            <p class="font-body-sm text-body-sm text-on-surface-variant">Dapatkan rekomendasi perawatan yang sesuai
+              dengan profil kulit unik Anda.</p>
+          </div>
+        </div>
+      </div>
+    </section><!-- /page-deteksi --> <!-- ╔══════════════════════════════════════════════════════════╗ -->
+    <!-- ║  PAGE: TIPE KULIT                                        ║ -->
+    <!-- ╚══════════════════════════════════════════════════════════╝ -->
+    <section id="page-tipe-kulit" class="page-section">
+      <main class="pt-8 pb-32 px-container-padding max-w-7xl mx-auto"> <!-- Hero -->
+        <section class="mb-stack-lg text-center">
+          <h1 class="text-display-lg-mobile md:text-display-lg font-display-lg text-primary mb-4">Pahami Karakter
+            Kulitmu</h1>
+          <p class="text-body-lg text-on-surface-variant max-w-2xl mx-auto">Setiap kulit memiliki kebutuhan unik. Kenali
+            ciri-ciri dan cara perawatan terbaik untuk menjaga kesehatan kulit jangka panjang.</p>
+        </section> <!-- Skin Types Grid -->
+        <div class="bento-grid"> <!-- Kombinasi -->
+          <div
+            class="bg-surface-container-lowest p-stack-md rounded-lg soft-elevation border border-primary/5 group hover:border-primary/20 transition-all duration-300 flex flex-col h-full">
+            <div class="flex items-center justify-between mb-stack-sm"> <span
+                class="material-symbols-outlined text-primary bg-primary-container/20 p-3 rounded-full"
+                style="font-size:32px;">face_retouching_natural</span> <span
+                class="text-label-md font-label-md text-secondary uppercase tracking-widest bg-secondary-container px-3 py-1 rounded-full">Seimbang</span>
+            </div>
+            <h2 class="text-headline-md font-headline-md text-on-surface mb-2">Kombinasi</h2>
+            <p class="text-body-md text-on-surface-variant mb-stack-md">Zona T (dahi, hidung, dagu) berminyak dengan
+              pori tampak besar, sedangkan zona pipi cenderung normal atau kering (Mercurio et al., 2013).</p>
+            <div class="mt-auto space-y-4">
+              <div class="bg-surface p-4 rounded-lg">
+                <h3 class="text-label-md font-label-md text-primary mb-2 flex items-center gap-2"><span
+                    class="material-symbols-outlined text-[16px]">info</span> CIRI-CIRI</h3>
+                <ul class="text-body-sm text-on-surface space-y-1">
+                  <li class="flex items-start gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary mt-1.5"></span>
+                    Zona T mengkilap dengan pori-pori tampak besar</li>
+                  <li class="flex items-start gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary mt-1.5"></span>
+                    Pipi terasa normal, kadang kering dan kencang</li>
+                  <li class="flex items-start gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary mt-1.5"></span>
+                    Skor kilap dan minyak lebih tinggi di zona T secara instrumental</li>
+                </ul>
+              </div>
+              <div class="bg-primary-container/10 p-4 rounded-lg">
+                <h3 class="text-label-md font-label-md text-primary mb-2 flex items-center gap-2"><span
+                    class="material-symbols-outlined text-[16px]">spa</span> TIPS PERAWATAN</h3>
+                <p class="text-body-sm text-on-surface">Gunakan pembersih lembut untuk seluruh wajah, lalu pelembap
+                  oil-free di zona T dan pelembap lebih kaya di area pipi (Mercurio et al., 2013).</p>
+              </div>
+            </div>
+          </div> <!-- Berminyak / Oily -->
+          <div
+            class="bg-surface-container-lowest p-stack-md rounded-lg soft-elevation border border-primary/5 group hover:border-primary/20 transition-all duration-300 flex flex-col h-full">
+            <div class="flex items-center justify-between mb-stack-sm"> <span
+                class="material-symbols-outlined text-primary bg-primary-container/20 p-3 rounded-full"
+                style="font-size:32px;">opacity</span> <span
+                class="text-label-md font-label-md text-secondary uppercase tracking-widest bg-secondary-container px-3 py-1 rounded-full">Aktif</span>
+            </div>
+            <h2 class="text-headline-md font-headline-md text-on-surface mb-2">Berminyak</h2>
+            <p class="text-body-md text-on-surface-variant mb-stack-md">Produksi sebum berlebih membuat wajah mengkilap
+              dan rentan jerawat, dengan skor sebum dan kekasaran kulit lebih tinggi secara objektif (Kuang et al.,
+              2025).</p>
+            <div class="mt-auto space-y-4">
+              <div class="bg-surface p-4 rounded-lg">
+                <h3 class="text-label-md font-label-md text-primary mb-2 flex items-center gap-2"><span
+                    class="material-symbols-outlined text-[16px]">info</span> CIRI-CIRI</h3>
+                <ul class="text-body-sm text-on-surface space-y-1">
+                  <li class="flex items-start gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary mt-1.5"></span>
+                    Pori-pori terlihat besar dan jelas</li>
+                  <li class="flex items-start gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary mt-1.5"></span>
+                    Cenderung berjerawat dan komedo</li>
+                  <li class="flex items-start gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary mt-1.5"></span>
+                    Tingkat sebum dan kekasaran kulit lebih tinggi secara instrumental</li>
+                </ul>
+              </div>
+              <div class="bg-primary-container/10 p-4 rounded-lg">
+                <h3 class="text-label-md font-label-md text-primary mb-2 flex items-center gap-2"><span
+                    class="material-symbols-outlined text-[16px]">spa</span> TIPS PERAWATAN</h3>
+                <p class="text-body-sm text-on-surface">Pilih produk berlabel "oil-free" atau "non-comedogenic" dan
+                  gunakan pelembap berbasis air/gel agar hidrasi tetap terjaga tanpa menyumbat pori (Seo et al., 2022).
+                </p>
+              </div>
+            </div>
+          </div> <!-- Kering / Dry -->
+          <div
+            class="bg-surface-container-lowest p-stack-md rounded-lg soft-elevation border border-primary/5 group hover:border-primary/20 transition-all duration-300 flex flex-col h-full">
+            <div class="flex items-center justify-between mb-stack-sm"> <span
+                class="material-symbols-outlined text-primary bg-primary-container/20 p-3 rounded-full"
+                style="font-size:32px;">water_drop</span> <span
+                class="text-label-md font-label-md text-secondary uppercase tracking-widest bg-secondary-container px-3 py-1 rounded-full">Sensitif</span>
+            </div>
+            <h2 class="text-headline-md font-headline-md text-on-surface mb-2">Kering</h2>
+            <p class="text-body-md text-on-surface-variant mb-stack-md">Sekresi sebum yang rendah membuat kulit terasa
+              kencang, kasar, dan lebih rentan iritasi dibanding tipe lain (Baumann, 2008).</p>
+            <div class="mt-auto space-y-4">
+              <div class="bg-surface p-4 rounded-lg">
+                <h3 class="text-label-md font-label-md text-primary mb-2 flex items-center gap-2"><span
+                    class="material-symbols-outlined text-[16px]">info</span> CIRI-CIRI</h3>
+                <ul class="text-body-sm text-on-surface space-y-1">
+                  <li class="flex items-start gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary mt-1.5"></span>
+                    Kulit terasa kaku/kencang setelah mencuci muka</li>
+                  <li class="flex items-start gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary mt-1.5"></span>
+                    Garis halus tampak lebih jelas</li>
+                  <li class="flex items-start gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary mt-1.5"></span>
+                    Lebih rentan kemerahan dan iritasi</li>
+                </ul>
+              </div>
+              <div class="bg-primary-container/10 p-4 rounded-lg">
+                <h3 class="text-label-md font-label-md text-primary mb-2 flex items-center gap-2"><span
+                    class="material-symbols-outlined text-[16px]">spa</span> TIPS PERAWATAN</h3>
+                <p class="text-body-sm text-on-surface">Gunakan pelembap kaya (cream) dengan kandungan ceramide atau
+                  hyaluronic acid secara rutin untuk memperkuat skin barrier (Baumann, 2008).</p>
+              </div>
+            </div>
+          </div> <!-- Normal -->
+          <div
+            class="bg-surface-container-lowest p-stack-md rounded-lg soft-elevation border border-primary/5 group hover:border-primary/20 transition-all duration-300 flex flex-col h-full">
+            <div class="flex items-center justify-between mb-stack-sm"> <span
+                class="material-symbols-outlined text-primary bg-primary-container/20 p-3 rounded-full"
+                style="font-size:32px;">check_circle</span> <span
+                class="text-label-md font-label-md text-secondary uppercase tracking-widest bg-secondary-container px-3 py-1 rounded-full">Ideal</span>
+            </div>
+            <h2 class="text-headline-md font-headline-md text-on-surface mb-2">Normal</h2>
+            <p class="text-body-md text-on-surface-variant mb-stack-md">Kulit dengan keseimbangan sebum dan hidrasi
+              optimal, ditandai tekstur halus dan jarang bermasalah (Baumann, 2008; Mercurio et al., 2013).</p>
+            <div class="mt-auto space-y-4">
+              <div class="bg-surface p-4 rounded-lg">
+                <h3 class="text-label-md font-label-md text-primary mb-2 flex items-center gap-2"><span
+                    class="material-symbols-outlined text-[16px]">info</span> CIRI-CIRI</h3>
+                <ul class="text-body-sm text-on-surface space-y-1">
+                  <li class="flex items-start gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary mt-1.5"></span>
+                    Tekstur kulit halus dan kenyal</li>
+                  <li class="flex items-start gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary mt-1.5"></span>
+                    Pori-pori hampir tidak terlihat</li>
+                  <li class="flex items-start gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary mt-1.5"></span>
+                    Tidak ada sensitivitas atau kilap berlebih</li>
+                </ul>
+              </div>
+              <div class="bg-primary-container/10 p-4 rounded-lg">
+                <h3 class="text-label-md font-label-md text-primary mb-2 flex items-center gap-2"><span
+                    class="material-symbols-outlined text-[16px]">spa</span> TIPS PERAWATAN</h3>
+                <p class="text-body-sm text-on-surface">Pertahankan kebersihan dan hidrasi seimbang, serta gunakan tabir
+                  surya setiap hari untuk menjaga kondisi kulit tetap optimal (Baumann, 2008).</p>
+              </div>
+            </div>
+          </div>
+        </div><!-- /bento-grid --> <!-- CTA Banner -->
+        <div
+          class="mt-stack-lg rounded-lg overflow-hidden relative h-48 md:h-72 soft-elevation bg-gradient-to-r from-primary to-secondary-container flex items-end p-8">
+          <div class="text-white">
+            <h2 class="text-headline-md font-headline-md">Siap Memulai Perjalanan Skin Care Anda?</h2>
+            <p class="text-body-md opacity-90 mb-4">Dapatkan analisis akurat dengan fitur deteksi kami.</p> <button
+              class="bg-white text-primary font-label-md px-6 py-2 rounded-full hover:opacity-90 transition-all"
+              data-page="deteksi" onclick="switchPage('deteksi')"> Mulai Deteksi → </button>
+          </div>
+        </div>
+      </main>
+    </section><!-- /page-tipe-kulit --> <!-- ╔══════════════════════════════════════════════════════════╗ -->
+    <!-- ║  PAGE: TENTANG                                           ║ -->
+    <!-- ╚══════════════════════════════════════════════════════════╝ -->
+    <section id="page-tentang" class="page-section">
+      <div class="max-w-5xl mx-auto px-gutter py-stack-lg space-y-stack-lg"> <!-- Hero -->
+        <section class="text-center space-y-4">
+          <h1 class="text-display-lg-mobile md:text-display-lg font-display-lg text-primary">Tentang Aplikasi</h1>
+          <p class="text-body-lg text-on-surface-variant max-w-2xl mx-auto">Misi kami adalah memberikan transparansi
+            teknologi untuk mendukung kesehatan kulit harian Anda melalui kecerdasan buatan.</p>
+        </section> <!-- Cara Kerja -->
+        <section class="space-y-stack-md">
+          <div class="flex items-center gap-4 mb-4"> <span
+              class="material-symbols-outlined text-primary">auto_awesome</span>
+            <h2 class="text-headline-md font-headline-md">Cara Kerja</h2>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bento-card p-stack-md text-center flex flex-col items-center gap-4 step-connector">
+              <div class="w-16 h-16 rounded-full bg-primary-container flex items-center justify-center"> <span
+                  class="material-symbols-outlined text-on-primary-container text-3xl">upload_file</span> </div>
+              <h3 class="font-headline-sm text-headline-sm">Unggah Foto</h3>
+              <p class="text-body-sm text-on-surface-variant">Ambil atau pilih foto area kulit yang ingin Anda periksa
+                dengan pencahayaan yang cukup.</p>
+            </div>
+            <div class="bento-card p-stack-md text-center flex flex-col items-center gap-4 step-connector">
+              <div class="w-16 h-16 rounded-full bg-secondary-container flex items-center justify-center"> <span
+                  class="material-symbols-outlined text-on-secondary-container text-3xl">psychology</span> </div>
+              <h3 class="font-headline-sm text-headline-sm">AI Menganalisis</h3>
+              <p class="text-body-sm text-on-surface-variant">Algoritma deep learning DenseNet121 memproses tekstur
+                dan pola kulit secara real-time di browser.</p>
+            </div>
+            <div class="bento-card p-stack-md text-center flex flex-col items-center gap-4">
+              <div class="w-16 h-16 rounded-full bg-tertiary-fixed flex items-center justify-center"> <span
+                  class="material-symbols-outlined text-on-tertiary-fixed text-3xl">assignment_turned_in</span> </div>
+              <h3 class="font-headline-sm text-headline-sm">Hasil Deteksi</h3>
+              <p class="text-body-sm text-on-surface-variant">Dapatkan ringkasan kondisi kulit beserta saran perawatan
+                awal yang relevan.</p>
+            </div>
+          </div>
+        </section> <!-- Model Info + Disclaimer -->
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          <section
+            class="lg:col-span-2 bento-card p-stack-md flex flex-col justify-center gap-4 bg-primary-container/10 border border-primary/10">
+            <div class="flex items-center gap-3"> <span class="material-symbols-outlined text-primary">memory</span>
+              <h2 class="text-headline-sm font-headline-sm">Teknologi Model</h2>
+            </div>
+            <div class="space-y-2">
+              <p class="text-body-md text-primary font-semibold">DenseNet121 Architecture</p>
+              <div class="flex items-end gap-2"> <span
+                  class="text-display-lg-mobile font-display-lg text-primary">79.0%</span> <span
+                  class="text-label-md font-label-md mb-2 text-on-surface-variant">AKURASI</span> </div>
+              <p class="text-body-sm text-on-surface-variant">Dilatih dengan DenseNet121 via torchvision, diekspor
+                ke ONNX FP32 (28 MB), dan berjalan sepenuhnya di browser via WebAssembly.</p>
+            </div>
+          </section>
+          <section class="lg:col-span-3 bg-error-container/30 border border-error/10 rounded-lg p-stack-md space-y-4">
+            <div class="flex items-center gap-3 text-error"> <span class="material-symbols-outlined">warning</span>
+              <h2 class="text-headline-sm font-headline-sm">Sanggahan (Disclaimer)</h2>
+            </div>
+            <ul class="space-y-4">
+              <li class="flex gap-3 items-start"> <span class="material-symbols-outlined text-error/70 mt-1"
+                  style="font-variation-settings:'FILL' 1; font-size:8px;">circle</span>
+                <p class="text-body-sm text-on-error-container">Alat ini untuk tujuan akademik dan edukasi mandiri,
+                  bukan merupakan diagnosis medis formal atau pengganti saran dokter spesialis kulit.</p>
+              </li>
+              <li class="flex gap-3 items-start"> <span class="material-symbols-outlined text-error/70 mt-1"
+                  style="font-variation-settings:'FILL' 1; font-size:8px;">circle</span>
+                <p class="text-body-sm text-on-error-container">Model dilatih menggunakan dataset campuran; tingkat
+                  akurasi untuk populasi Asia atau Indonesia mungkin memiliki deviasi yang lebih besar.</p>
+              </li>
+              <li class="flex gap-3 items-start"> <span class="material-symbols-outlined text-error/70 mt-1"
+                  style="font-variation-settings:'FILL' 1; font-size:8px;">circle</span>
+                <p class="text-body-sm text-on-error-container"><strong>Privasi Terjamin:</strong> Foto yang Anda unggah
+                  tidak disimpan di server mana pun. Seluruh proses analisis dilakukan secara lokal di browser/perangkat
+                  Anda.</p>
+              </li>
+            </ul>
+          </section>
+    </section><!-- /page-tentang -->
+  </main>
+  <!-- ============================================================ --><!--  MOBILE BOTTOM NAV (fixed)                                   --><!-- ============================================================ -->
+  <nav class="md:hidden" id="bottom-nav">
+    <div id="bottom-nav-indicator"></div>
+    <button class="active-btn text-on-secondary-container" data-page="deteksi" id="bnav-deteksi">
+      <span class="material-symbols-outlined">face_retouching_natural</span>
+      <span class="text-label-md font-label-md">Deteksi</span>
+    </button>
+    <button class="text-on-surface-variant" data-page="tipe-kulit" id="bnav-tipe-kulit">
+      <span class="material-symbols-outlined">format_list_bulleted</span>
+      <span class="text-label-md font-label-md">Tipe Kulit</span>
+    </button>
+    <button class="text-on-surface-variant" data-page="tentang" id="bnav-tentang">
+      <span class="material-symbols-outlined">info</span>
+      <span class="text-label-md font-label-md">Tentang</span>
+    </button>
+  </nav>
+  <div class="h-28 md:hidden"></div>
+  <!-- bottom nav spacer --><!-- ============================================================ --><!--  FOOTER                                                      --><!-- ============================================================ -->
+  <footer class="w-full mt-auto bg-surface-container-low border-t border-outline-variant/15">
+    <div
+      class="flex flex-col md:flex-row justify-between items-center text-center md:text-left px-container-padding py-stack-md w-full gap-stack-sm max-w-7xl mx-auto">
+      <div class="space-y-1">
+        <div class="flex items-center gap-2 justify-center md:justify-start"> <span
+            class="material-symbols-outlined text-on-surface-variant"
+            style="font-variation-settings:'FILL' 1;">spa</span> <span
+            class="font-label-md text-label-md text-on-surface-variant">SKINSENSE</span> </div>
+        <p class="font-body-sm text-body-sm text-secondary max-w-md"> © 2026 Klasifikasi Tipe Kulit Wajah. Data riset
+          difokuskan pada karakteristik kulit untuk akurasi optimal. </p>
+      </div>
+      <div class="flex gap-stack-md"> <a
+          class="font-body-sm text-on-surface-variant hover:text-primary transition-colors cursor-pointer" href="#"
+          onclick="switchPage('tentang')">Tentang Riset</a> <a
+          class="font-body-sm text-on-surface-variant hover:text-primary transition-colors cursor-pointer" href="#"
+          onclick="switchPage('tentang')">Kebijakan Privasi</a> </div>
+    </div>
+  </footer>
+  <!-- ============================================================ --><!--  HIDDEN CANVAS (untuk preprocessing — tidak tampil)          --><!-- ============================================================ --><canvas
+    id="processing-canvas"
+    style="display:none;"></canvas><!-- ============================================================ --><!--  JAVASCRIPT (file terpisah, urutan penting)                  --><!--  1. inference.js  — konstanta model, load ONNX, softmax      --><!--  2. preprocess.js — Canvas resize/crop/normalisasi           --><!--  3. app.js        — navigasi, upload, tombol, tampil hasil   --><!-- ============================================================ -->
+  <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1/dist/face-api.js"></script>
+  <!-- Splash screen lifecycle (harus dimuat PERTAMA) -->
+  <script src="js/splash.js?v=2"></script>
+  <script src="js/inference.js"></script>
+  <script src="js/preprocess.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/camera.js"></script>
+</body>
+
+</html>

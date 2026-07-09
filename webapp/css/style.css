@@ -1,0 +1,326 @@
+/* ================================================================
+   style.css — Custom styles di luar Tailwind
+   Untuk properti yang tidak bisa diekspresikan dengan Tailwind CDN.
+   ================================================================ */
+
+/* ── Global box-sizing ────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* Cegah konten melebar keluar layar */
+html, body { max-width: 100%; overflow-x: hidden; }
+
+/* Material Symbols font */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+}
+
+/* Base */
+body { min-height: 100dvh; background-color: #f6faff; color: #001e2e; }
+
+/* Upload zone: state saat file di-drag di atasnya */
+.drag-over {
+  border-color: #016464 !important;
+  background-color: #f0fdfa !important;
+}
+
+/* Bento card elevation (Tipe Kulit & Tentang) */
+.soft-elevation { box-shadow: 0 4px 20px rgba(45, 125, 125, 0.05); }
+.bento-card {
+  background-color: #ffffff;
+  border-radius: 2rem;
+  box-shadow: 0 4px 20px rgba(45, 125, 125, 0.05);
+  transition: transform 0.3s ease;
+}
+.bento-card:hover { transform: translateY(-4px); }
+
+/* Single-page routing: semua section tersembunyi kecuali yang .active */
+.page-section {
+  display: none;
+  opacity: 0;
+}
+.page-section.active {
+  display: block;
+  animation: pageFadeIn 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Spin animation (dipakai untuk spinner tombol & status model) */
+@keyframes spin { to { transform: rotate(360deg); } }
+.animate-spin { animation: spin 1s linear infinite; }
+
+/* Step connector di halaman Tentang */
+.step-connector { position: relative; }
+.step-connector::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -20px;
+  width: 40px;
+  height: 2px;
+  background: #bec9c8;
+  z-index: -1;
+}
+@media (max-width: 768px) { .step-connector::after { display: none; } }
+
+/* Bento grid (2-kolom di >=768px) */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 24px;
+}
+@media (min-width: 768px) {
+  .bento-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Animasi masuk kartu hasil inferensi */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.result-appear { animation: fadeSlideIn 0.5s ease forwards; }
+
+/* Garis bawah tab navigasi aktif */
+.nav-active {
+  color: #016464;
+  position: relative;
+}
+.nav-active::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: #016464;
+  border-radius: 9999px;
+}
+
+/* Smooth transition for drop-zone minimum height */
+#drop-zone {
+  transition: min-height 0.3s ease, border-color 0.3s ease, background-color 0.3s ease;
+}
+
+
+/* ================================================================
+   RESPONSIVE — MOBILE
+   Breakpoints: <=768px (tablet kecil/HP) dan <=480px (HP sempit)
+   ================================================================ */
+
+/* ── Gambar dan video selalu di dalam container ───────────────── */
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ── 768px: Tablet kecil & HP landscape ──────────────────────── */
+@media (max-width: 768px) {
+
+  /* Pastikan konten tidak overflow secara horizontal */
+  main, section, div { max-width: 100%; }
+  main { overflow-x: hidden; }
+
+  /* ── Drop zone ── */
+  #drop-zone {
+    min-height: 280px !important;
+    border-radius: 1rem;
+  }
+
+  /* Upload default state */
+  #upload-default-state {
+    padding: 24px 16px !important;
+  }
+
+  /* Tombol Pilih Foto & Buka Kamera: full-width, touch-friendly */
+  #btn-pilih-foto,
+  #btn-buka-kamera {
+    min-height: 48px;
+    padding: 12px 20px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Stack tombol secara vertikal */
+  #upload-default-state > div:last-child {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+    padding: 0 8px;
+  }
+
+  /* ── Camera view ── */
+  #camera-video {
+    max-height: 220px;
+  }
+
+  #capture-btn,
+  #flip-btn,
+  #btn-cancel-camera {
+    min-height: 48px;
+    padding: 12px 16px;
+  }
+
+  /* ── Tombol Analisis: full-width di mobile ── */
+  #analyze-btn {
+    width: 100%;
+    min-height: 52px;
+    justify-content: center;
+  }
+
+  /* ── Reset button ── */
+  #reset-btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 48px;
+  }
+
+  /* ── Bottom nav: gaya floating capsule modern (iOS style) ── */
+  #bottom-nav {
+    position: fixed;
+    bottom: 24px;
+    left: 20px;
+    right: 20px;
+    width: calc(100% - 40px);
+    max-width: 440px;
+    margin: 0 auto;
+    border-radius: 30px;
+    padding: 8px 12px;
+    background-color: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(20px) saturate(190%);
+    -webkit-backdrop-filter: blur(20px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 10px 30px rgba(45, 125, 125, 0.12);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 50;
+  }
+
+  #bottom-nav button {
+    position: relative;
+    z-index: 10;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 54px;
+    padding: 6px 12px;
+    border-radius: 9999px;
+    background: transparent !important;
+    border: none;
+    cursor: pointer;
+    transition: color 0.3s ease, transform 0.15s ease;
+  }
+
+  #bottom-nav button:active {
+    transform: scale(0.9);
+  }
+
+  #bottom-nav-indicator {
+    position: absolute;
+    background-color: #b9ecee; /* secondary-container */
+    border-radius: 9999px;
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ── Bento card hover disabled di touch device ── */
+  .bento-card:hover { transform: none; }
+  @media (hover: hover) {
+    .bento-card:hover { transform: translateY(-4px); }
+  }
+}
+
+/* ── 480px: HP ukuran standar (375px–480px) ────────────────────── */
+@media (max-width: 480px) {
+
+  /* Padding container lebih ketat */
+  .px-container-padding {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* ── Hero heading Deteksi ── */
+  h1 {
+    font-size: 26px !important;
+    line-height: 34px !important;
+    letter-spacing: -0.01em;
+  }
+
+  /* ── Drop zone lebih kompak ── */
+  #drop-zone {
+    min-height: 240px !important;
+  }
+
+  /* Ikon kamera di upload zone */
+  #upload-default-state .w-24 {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 12px;
+  }
+
+  /* ── Video kamera ── */
+  #camera-video {
+    max-height: 200px;
+  }
+
+  /* ── Result section ── */
+  #result-section {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  /* ── Probabilitas bar: label tidak terpotong ── */
+  #prob-bars > div {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ── Educational cards: gap lebih kecil ── */
+  #edu-cards {
+    gap: 12px;
+  }
+
+  /* ── Heading Tipe Kulit & Tentang ── */
+  .text-display-lg-mobile {
+    font-size: 24px !important;
+    line-height: 32px !important;
+  }
+
+  /* ── CTA Banner Tipe Kulit: lebih pendek ── */
+  .h-48 { height: 160px !important; }
+
+  /* ── Developer avatar di Tentang ── */
+  .w-32.h-32 {
+    width: 80px;
+    height: 80px;
+  }
+
+  /* ── Footer: teks sedikit lebih kecil ── */
+  footer { padding-left: 16px; padding-right: 16px; }
+
+  /* ── Model status ── */
+  #model-status {
+    text-align: center;
+    padding: 0 16px;
+  }
+}

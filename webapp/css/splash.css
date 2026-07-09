@@ -1,0 +1,316 @@
+/* ================================================================
+   splash.css — Splash Screen SkinSense
+   ────────────────────────────────────────────────────────────────
+   TUJUAN  : Menampilkan layar pembuka (splash screen) branded
+             selama 2–3 detik saat halaman pertama kali dibuka.
+   PALET   : Mengikuti Material Design 3 token dari proyek utama:
+               Primary       #016464  (teal gelap)
+               Inverse-Primary #88d3d3  (teal terang)
+               Surface       #f6faff  (biru es)
+               On-Surface    #001e2e  (biru tua)
+               Secondary-Container #b9ecee
+               Outline-Variant #bec9c8
+   FONT    : Plus Jakarta Sans (headline), Inter (body)
+             Sudah dimuat di index.html via Google Fonts CDN.
+   ================================================================ */
+
+
+/* ────────────────────────────────────────────────────────────────
+   1. OVERLAY UTAMA
+   Lapisan full-screen yang menutupi seluruh viewport.
+   z-index 9999 agar selalu di atas semua konten halaman.
+   ──────────────────────────────────────────────────────────────── */
+#splash-screen {
+  position: fixed;               /* Tetap di tempat walau halaman di-scroll */
+  inset: 0;                      /* Shorthand: top/right/bottom/left = 0    */
+  z-index: 9999;                 /* Di atas semua elemen lain               */
+
+  /* Latar belakang: gradien radial dari pusat ke tepi
+     Pusat = Surface (#f6faff), Tepi = sedikit lebih gelap (#dff0ff)
+     Memberikan kesan "cahaya" di tengah layar.                           */
+  background:
+    radial-gradient(
+      ellipse at center,
+      #f6faff 0%,                /* Pusat: warna Surface terang             */
+      #eaf5ff 50%,               /* Tengah: Surface-Container-Low           */
+      #dff0ff 100%               /* Tepi: Surface-Container                 */
+    );
+
+  /* Flexbox untuk memusatkan seluruh konten splash secara vertikal
+     dan horizontal.                                                       */
+  display: flex;
+  flex-direction: column;        /* Susun anak secara vertikal              */
+  align-items: center;           /* Pusat horizontal                        */
+  justify-content: center;       /* Pusat vertikal                          */
+
+  /* Transisi fade-out: properti opacity dan visibility akan berubah
+     dengan durasi 600ms dan kurva ease-out (deselerasi halus).
+     CATATAN: visibility ditambahkan agar elemen benar-benar tidak
+     bisa diklik setelah menghilang (opacity:0 saja tidak cukup).          */
+  transition:
+    opacity    600ms ease-out,
+    visibility 600ms ease-out;
+
+  /* State default: terlihat penuh */
+  opacity: 1;
+  visibility: visible;
+}
+
+/* State setelah kelas .splash-hidden ditambahkan via JavaScript:
+   Elemen menghilang (transparan) dan tidak bisa diinteraksi.              */
+#splash-screen.splash-hidden {
+  opacity: 0;                    /* Transparan penuh                        */
+  visibility: hidden;            /* Tidak bisa diklik / difokuskan          */
+}
+
+/* Sembunyikan splash screen sepenuhnya jika pengguna me-refresh halaman dalam sesi yang sama */
+.skip-splash #splash-screen {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+
+/* ────────────────────────────────────────────────────────────────
+   2. KONTAINER KONTEN (logo, teks, loading bar)
+   Membungkus semua elemen visual di dalam splash.
+   ──────────────────────────────────────────────────────────────── */
+.splash-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;                     /* Jarak antar-elemen anak = 20px          */
+
+  /* Animasi masuk: konten naik 30px sambil fade-in selama 800ms
+     Delay 100ms agar browser sempat melakukan first paint dulu.           */
+  animation: splashContentEnter 800ms cubic-bezier(0.22, 1, 0.36, 1) 100ms both;
+}
+
+
+/* ────────────────────────────────────────────────────────────────
+   3. IKON LOGO (lingkaran dengan ikon Material "face")
+   Lingkaran teal dengan ikon wajah putih di tengahnya.
+   ──────────────────────────────────────────────────────────────── */
+.splash-logo-circle {
+  /* Dimensi lingkaran */
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;            /* Membuat kotak menjadi lingkaran         */
+
+  /* Gradien dari Primary ke Inverse-Primary (teal gelap → terang)
+     Arah 135° = diagonal kiri-atas → kanan-bawah.                        */
+  background: linear-gradient(135deg, #016464 0%, #2d7d7d 60%, #88d3d3 100%);
+
+  /* Bayangan halus di bawah lingkaran, warna teal semi-transparan         */
+  box-shadow:
+    0 8px 32px rgba(1, 100, 100, 0.25),   /* Bayangan utama (lebar, lembut)  */
+    0 2px 8px  rgba(1, 100, 100, 0.15);   /* Bayangan dekat (tajam, halus)   */
+
+  /* Pusatkan ikon di dalam lingkaran */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Animasi: lingkaran membesar dari 0 → 1 dengan efek "bounce"           */
+  animation: splashLogoPop 700ms cubic-bezier(0.34, 1.56, 0.64, 1) 200ms both;
+}
+
+/* Ikon Material Symbols di dalam lingkaran logo                            */
+.splash-logo-circle .material-symbols-outlined {
+  font-size: 44px;               /* Ukuran ikon                             */
+  color: #ffffff;                 /* Putih agar kontras di atas teal         */
+
+  /* FILL 1 = ikon terisi penuh (bukan outline).
+     Mengikuti konvensi yang sudah dipakai di header website.              */
+  font-variation-settings: 'FILL' 1;
+}
+
+
+/* ────────────────────────────────────────────────────────────────
+   4. TEKS BRAND ("SkinSense") & TAGLINE
+   ──────────────────────────────────────────────────────────────── */
+.splash-brand {
+  font-family: 'Plus Jakarta Sans', sans-serif;  /* Font heading proyek     */
+  font-size: 28px;
+  font-weight: 700;              /* Bold                                    */
+  color: #016464;                /* Warna Primary                           */
+  letter-spacing: -0.02em;       /* Sedikit rapat, konsisten dgn display-lg */
+  margin: 0;
+
+  /* Animasi fade-in dari bawah, delay 400ms (setelah logo muncul)         */
+  animation: splashFadeUp 600ms ease-out 400ms both;
+}
+
+.splash-tagline {
+  font-family: 'Inter', sans-serif;  /* Font body proyek                   */
+  font-size: 14px;
+  font-weight: 400;
+  color: #6f7979;                /* Warna Outline (abu-abu netral)          */
+  letter-spacing: 0.04em;        /* Sedikit renggang agar terbaca           */
+  margin: 0;
+
+  /* Animasi fade-in dari bawah, delay 550ms (setelah brand muncul)        */
+  animation: splashFadeUp 600ms ease-out 550ms both;
+}
+
+
+/* ────────────────────────────────────────────────────────────────
+   5. LOADING BAR
+   Bar horizontal tipis yang terisi dari kiri ke kanan.
+   ──────────────────────────────────────────────────────────────── */
+
+/* Track (latar belakang bar, abu-abu terang) */
+.splash-loader-track {
+  width: 200px;                  /* Lebar total bar                         */
+  height: 3px;                   /* Sangat tipis, subtle                    */
+  background-color: #bec9c8;     /* Warna Outline-Variant                   */
+  border-radius: 9999px;         /* Ujung membulat penuh                    */
+  overflow: hidden;              /* Sembunyikan fill yang melebihi track    */
+  margin-top: 8px;               /* Jarak dari tagline                      */
+
+  /* Animasi fade-in, delay 700ms */
+  animation: splashFadeUp 500ms ease-out 700ms both;
+}
+
+/* Fill (bagian yang bergerak, gradien teal) */
+.splash-loader-fill {
+  height: 100%;                  /* Tinggi = tinggi track (3px)             */
+  width: 0%;                     /* Mulai dari 0% — akan dianimasikan       */
+  border-radius: 9999px;         /* Ujung membulat                          */
+
+  /* Gradien horizontal: teal gelap → teal terang (arah ke kanan)          */
+  background: linear-gradient(90deg, #016464, #88d3d3);
+
+  /* Animasi: bar mengisi dari 0% ke 100% selama 2.2 detik.
+     Kurva ease-in-out agar awal dan akhir terasa natural.
+     Delay 800ms agar muncul setelah semua elemen lain sudah terlihat.
+     `both` = pertahankan state akhir (width:100%) setelah selesai.        */
+  animation: splashLoaderFill 2200ms ease-in-out 800ms both;
+}
+
+
+/* ────────────────────────────────────────────────────────────────
+   6. DEKORASI — LINGKARAN BLUR DI BACKGROUND
+   Dua lingkaran besar buram (blur) yang memberikan efek "ambient
+   glow" di belakang konten splash. Murni estetika.
+   ──────────────────────────────────────────────────────────────── */
+.splash-deco {
+  position: absolute;            /* Diposisikan relatif terhadap #splash    */
+  border-radius: 50%;            /* Lingkaran                               */
+  filter: blur(80px);            /* Sangat buram → efek glow                */
+  opacity: 0.35;                 /* Semi-transparan agar tidak mendominasi  */
+  pointer-events: none;          /* Tidak menghalangi klik                  */
+}
+
+/* Lingkaran dekorasi 1: kiri atas, teal terang                             */
+.splash-deco--1 {
+  width: 300px;
+  height: 300px;
+  background: #88d3d3;           /* Inverse-Primary                         */
+  top: -80px;
+  left: -60px;
+
+  /* Animasi: perlahan membesar sambil bergeser sedikit                    */
+  animation: splashDecoFloat 4s ease-in-out infinite alternate;
+}
+
+/* Lingkaran dekorasi 2: kanan bawah, teal gelap                            */
+.splash-deco--2 {
+  width: 250px;
+  height: 250px;
+  background: #016464;           /* Primary                                 */
+  bottom: -60px;
+  right: -40px;
+
+  /* Animasi yang sama tapi delay 2 detik agar bergerak bergantian         */
+  animation: splashDecoFloat 4s ease-in-out 2s infinite alternate;
+}
+
+
+/* ────────────────────────────────────────────────────────────────
+   7. KEYFRAME ANIMATIONS
+   Semua @keyframes yang digunakan oleh elemen splash.
+   ──────────────────────────────────────────────────────────────── */
+
+/* 7a. Konten utama masuk: naik 30px + fade-in                              */
+@keyframes splashContentEnter {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 7b. Logo pop: membesar dari skala 0 ke 1 dengan overshoot               */
+@keyframes splashLogoPop {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    /* Efek bounce/overshoot diatur oleh cubic-bezier di properti animation,
+       bukan di keyframe. cubic-bezier(0.34, 1.56, 0.64, 1) memiliki
+       nilai > 1.0 sehingga melampaui target lalu kembali (bounce).       */
+  }
+}
+
+/* 7c. Fade-in dari bawah: generik, dipakai oleh brand, tagline, loader    */
+@keyframes splashFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px); /* Mulai 12px di bawah posisi final       */
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 7d. Loading bar terisi dari 0% ke 100%                                   */
+@keyframes splashLoaderFill {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+/* 7e. Dekorasi melayang: sedikit membesar/mengecil (efek "bernapas")       */
+@keyframes splashDecoFloat {
+  from { transform: scale(1)   translate(0, 0);     }
+  to   { transform: scale(1.1) translate(10px, 8px); }
+}
+
+
+/* ────────────────────────────────────────────────────────────────
+   8. RESPONSIVE ADJUSTMENTS
+   Menyesuaikan ukuran elemen splash untuk layar kecil (mobile).
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .splash-logo-circle {
+    width: 72px;                 /* Lebih kecil di mobile                   */
+    height: 72px;
+  }
+  .splash-logo-circle .material-symbols-outlined {
+    font-size: 36px;             /* Ikon mengecil proporsional              */
+  }
+  .splash-brand {
+    font-size: 24px;             /* Teks brand lebih kecil                  */
+  }
+  .splash-tagline {
+    font-size: 12px;
+  }
+  .splash-loader-track {
+    width: 160px;                /* Bar lebih pendek                        */
+  }
+  .splash-deco--1 {
+    width: 200px;                /* Dekorasi lebih kecil agar tidak crop    */
+    height: 200px;
+  }
+  .splash-deco--2 {
+    width: 160px;
+    height: 160px;
+  }
+}
