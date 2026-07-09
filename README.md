@@ -29,3 +29,19 @@ Perbandingan lengkap 9 kombinasi (3 arsitektur × 3 class weight) ada di
 `notebooks/04_train_compare_export.ipynb`.
 
 ## Struktur Folder
+
+## Menjalankan Web App Secara Lokal
+
+```bash
+cd webapp
+node serve.js
+```
+
+Buka `http://localhost:3000` di browser. Untuk mengakses dari HP di jaringan yang
+sama, gunakan alamat jaringan lokal yang ditampilkan di terminal setelah server
+berjalan.
+
+## Disclaimer
+
+Alat ini dibuat untuk tujuan akademik dan edukasi mandiri, bukan pengganti
+diagnosis medis profesional.
