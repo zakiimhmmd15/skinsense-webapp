@@ -145,10 +145,54 @@ dropZone.addEventListener('click', (e) => {
 });
 
 /**
- * Proses file gambar yang dipilih/di-drop: tampilkan preview dan aktifkan tombol Analisis.
+ * Resize gambar menggunakan canvas agar tidak berat saat diproses
+ * dan otomatis menangani orientasi EXIF (lewat rendering browser modern).
+ * @param {File} file 
+ * @param {number} maxSize Sisi terpanjang maksimal (px)
+ * @returns {Promise<string>} Data URL dari gambar yang di-resize
+ */
+function resizeImage(file, maxSize) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > maxSize || height > maxSize) {
+          if (width > height) {
+            height = Math.round((height * maxSize) / width);
+            width = maxSize;
+          } else {
+            width = Math.round((width * maxSize) / height);
+            height = maxSize;
+          }
+        }
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Kompresi ringan agar base64 tidak terlalu besar
+        resolve(canvas.toDataURL(file.type, 0.9));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Proses file gambar yang dipilih/di-drop: otomatis resize, tampilkan preview,
+ * dan aktifkan tombol Analisis.
  * @param {FileList} files
  */
-function handleFiles(files) {
+async function handleFiles(files) {
   if (!files.length) return;
   const file = files[0];
   if (!file.type.startsWith('image/')) {
@@ -156,17 +200,22 @@ function handleFiles(files) {
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = e => {
-    imagePreview.src = e.target.result;
-    previewContainer.classList.remove('hidden');
-    previewContainer.style.display = 'flex';
-    uploadDefault.classList.add('hidden');
+  // Tampilkan preview state awal (loading tersirat) untuk responsivitas UI
+  previewContainer.classList.remove('hidden');
+  previewContainer.style.display = 'flex';
+  uploadDefault.classList.add('hidden');
+  resultSection.classList.add('hidden');  // sembunyikan hasil run sebelumnya
+  hideAnalysisMessage();                  // bersihkan pesan error jika ada
+
+  try {
+    const resizedDataUrl = await resizeImage(file, 1024);
+    imagePreview.src = resizedDataUrl;
     enableAnalyzeBtn();
-    resultSection.classList.add('hidden');  // sembunyikan hasil run sebelumnya
-    hideAnalysisMessage();                  // bersihkan pesan error jika ada
-  };
-  reader.readAsDataURL(file);
+  } catch (err) {
+    showAnalysisMessage('Gagal memproses gambar. Silakan coba file lain.');
+    console.error('Error saat resize gambar:', err);
+    resetUpload();
+  }
 }
 
 /** Aktifkan tombol Analisis (setelah gambar dimuat). */
