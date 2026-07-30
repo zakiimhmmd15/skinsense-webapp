@@ -22,6 +22,7 @@ const MIME = {
   '.css'  : 'text/css',
   '.json' : 'application/json',
   '.onnx' : 'application/octet-stream',
+  '.data' : 'application/octet-stream',
   '.wasm' : 'application/wasm',
   '.png'  : 'image/png',
   '.jpg'  : 'image/jpeg',
@@ -31,7 +32,7 @@ const MIME = {
 };
 
 // Aset yang boleh di-cache browser (1 hari = 86400 detik)
-const CACHEABLE_EXTS = new Set(['.onnx', '.wasm', '.js', '.css', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.json']);
+const CACHEABLE_EXTS = new Set(['.onnx', '.data', '.wasm', '.js', '.css', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.json']);
 
 const server = http.createServer((req, res) => {
   let urlPath = req.url.split('?')[0];
