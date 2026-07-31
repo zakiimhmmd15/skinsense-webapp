@@ -36,8 +36,6 @@ let ortSession = null;  // ort.InferenceSession, diisi setelah loadModel()
 
 // Arahkan WASM runtime ke CDN (sama dengan versi ort.min.js yang dimuat)
 ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/';
-ort.env.logLevel = 'verbose';
-ort.env.debug = true;
 
 // ── Load model ────────────────────────────────────────────────────
 /**
@@ -47,24 +45,15 @@ ort.env.debug = true;
 async function loadModel() {
   updateModelStatus('loading', 'Memuat model AI (±3 detik pertama kali)...');
   try {
-    const dataRes = await fetch('densenet121_skin.onnx.data');
-    if (!dataRes.ok) throw new Error(`HTTP error! status: ${dataRes.status}`);
-    const dataBuffer = new Uint8Array(await dataRes.arrayBuffer());
-    
     ortSession = await ort.InferenceSession.create(MODEL_PATH, {
       executionProviders: ['wasm'],
       graphOptimizationLevel: 'all',
-      externalData: [
-        {
-          path: 'densenet121_skin.onnx.data',
-          data: dataBuffer,
-        },
-      ],
     });
     updateModelStatus('ready', 'Model siap · DenseNet121 · 28 MB · Berjalan di browser');
     console.log('[ONNX] Model berhasil dimuat. Input names:', ortSession.inputNames);
   } catch (err) {
-    updateModelStatus('error', `Gagal memuat model: ${err.message}`);
+    const msg = (err && err.message) ? err.message : String(err);
+    updateModelStatus('error', `Gagal memuat model: ${msg}`);
     console.error('[ONNX] Gagal memuat model:', err);
   }
 }
