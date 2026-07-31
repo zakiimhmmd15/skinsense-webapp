@@ -70,8 +70,8 @@ let faceGuideTimer = null;
 // Rentang proporsi lebar wajah terhadap lebar frame yang dianggap "pas".
 // Wajah harus cukup besar (dekat) agar tekstur kulit terbaca.
 // Kalibrasi di HP: kalau susah "pas", turunkan MIN; kalau "pas" kejauhan, naikkan MIN.
-const FACE_MIN_RATIO = 0.25;   // di bawah ini = terlalu jauh (dikalibrasi dari rasio aktual ~0.30)
-const FACE_MAX_RATIO = 0.75;   // di atas ini  = terlalu dekat (dikalibrasi: "kedekatan" ~0.37-0.38)
+const FACE_MIN_RATIO = 0.50;   // di bawah ini = terlalu jauh
+const FACE_MAX_RATIO = 0.90;   // di atas ini  = terlalu dekat
 
 function startFaceGuide() {
   // Catatan: video SUDAH ditampilkan di onloadedmetadata (videoEl tampil
@@ -176,20 +176,30 @@ async function openCamera() {
       cameraControlsBar.classList.remove('hidden');
       cameraControlsBar.style.display = 'flex';
       captureBtn.disabled = true;
-      // Mirror: terapkan scaleX(-1) HANYA pada videoEl (kamera depan)
-      // camera-stage tidak di-mirror agar teks panduan tidak terbalik
-      const mirror = (facingMode === 'user') ? 'scaleX(-1)' : 'scaleX(1)';
-      videoEl.style.transform = mirror;
-      // canvas overlay ikut di-mirror bersama video
-      if (faceGuideCanvas) faceGuideCanvas.style.transform = mirror;
-      // Teks panduan diberi counter-transform agar tetap terbaca normal
-      if (faceGuideStatus) faceGuideStatus.style.transform =
-        (facingMode === 'user')
-          ? 'translateX(-50%) scaleX(-1)'
-          : 'translateX(-50%) scaleX(1)';
-      // Pastikan camera-stage tidak ikut ter-mirror
+
+      // ── Mirror logic ──
+      // Hanya videoEl yang di-mirror (scaleX(-1) untuk kamera depan).
+      // camera-stage TIDAK pernah di-mirror agar elemen overlay tidak ikut terbalik.
+      videoEl.style.transform = (facingMode === 'user') ? 'scaleX(-1)' : 'none';
+
+      // canvas face-guide: tidak perlu di-mirror terpisah karena ia
+      // overlay di atas videoEl via position:absolute — ia sudah
+      // "terbaca" dari sudut pandang video yang telah di-mirror.
+      if (faceGuideCanvas) faceGuideCanvas.style.transform = 'none';
+
+      // Teks panduan: gunakan class CSS counter-mirror.
+      // Karena video di-mirror via scaleX(-1) pada videoEl (bukan stage),
+      // teks di stage sebenarnya sudah normal — tidak perlu counter-transform.
+      // Kita pastikan class counter-mirror DIHAPUS agar tidak ada transform residual.
+      if (faceGuideStatus) {
+        faceGuideStatus.classList.remove('counter-mirror');
+        faceGuideStatus.style.transform = 'translateX(-50%)';
+      }
+
+      // Pastikan stage tidak pernah ter-mirror
       const cameraStageEl = document.getElementById('camera-stage');
       if (cameraStageEl) cameraStageEl.style.transform = 'none';
+
       startFaceGuide();  // mulai loop deteksi oval dinamis
     };
   } catch (err) {

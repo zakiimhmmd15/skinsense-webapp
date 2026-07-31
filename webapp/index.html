@@ -40,6 +40,10 @@
       aspect-ratio: 1 / 1;   /* stage ikut kotak agar canvas overlay presisi */
       overflow: hidden;
     }
+    /* Elemen di dalam camera-stage yang harus tetap normal (tidak ikut mirror video) */
+    .counter-mirror {
+      transform: translateX(-50%) scaleX(-1) !important;
+    }
 
     #capture-btn:disabled {
       opacity: 0.45;
