@@ -176,14 +176,20 @@ async function openCamera() {
       cameraControlsBar.classList.remove('hidden');
       cameraControlsBar.style.display = 'flex';
       captureBtn.disabled = true;
-      // Mirror: kamera depan di-mirror via CSS di #camera-stage supaya
-      // canvas face-guide ikut ter-mirror juga
+      // Mirror: terapkan scaleX(-1) HANYA pada videoEl (kamera depan)
+      // camera-stage tidak di-mirror agar teks panduan tidak terbalik
+      const mirror = (facingMode === 'user') ? 'scaleX(-1)' : 'scaleX(1)';
+      videoEl.style.transform = mirror;
+      // canvas overlay ikut di-mirror bersama video
+      if (faceGuideCanvas) faceGuideCanvas.style.transform = mirror;
+      // Teks panduan diberi counter-transform agar tetap terbaca normal
+      if (faceGuideStatus) faceGuideStatus.style.transform =
+        (facingMode === 'user')
+          ? 'translateX(-50%) scaleX(-1)'
+          : 'translateX(-50%) scaleX(1)';
+      // Pastikan camera-stage tidak ikut ter-mirror
       const cameraStageEl = document.getElementById('camera-stage');
-      if (cameraStageEl) {
-        cameraStageEl.style.transform = (facingMode === 'user') ? 'scaleX(-1)' : 'scaleX(1)';
-      }
-      // videoEl transform dikembalikan ke normal (mirror ada di stage)
-      videoEl.style.transform = 'none';
+      if (cameraStageEl) cameraStageEl.style.transform = 'none';
       startFaceGuide();  // mulai loop deteksi oval dinamis
     };
   } catch (err) {
