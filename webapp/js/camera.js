@@ -71,7 +71,7 @@ let faceGuideTimer = null;
 // Wajah harus cukup besar (dekat) agar tekstur kulit terbaca.
 // Kalibrasi di HP: kalau susah "pas", turunkan MIN; kalau "pas" kejauhan, naikkan MIN.
 const FACE_MIN_RATIO = 0.50;   // di bawah ini = terlalu jauh
-const FACE_MAX_RATIO = 0.90;   // di atas ini  = terlalu dekat
+const FACE_MAX_RATIO = 1.00;   // di atas ini  = terlalu dekat (1.00 berarti boleh sedekat mungkin hingga 100% lebar frame)
 
 function startFaceGuide() {
   // Catatan: video SUDAH ditampilkan di onloadedmetadata (videoEl tampil
