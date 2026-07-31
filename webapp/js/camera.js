@@ -159,8 +159,9 @@ async function openCamera() {
   const constraints = {
     video: {
       facingMode: facingMode,
-      width:  { ideal: 1280 },
+      width:  { ideal: 720 },
       height: { ideal: 720 },
+      aspectRatio: { ideal: 1 },   // 1:1 square — konsisten di HP portrait & laptop landscape
     },
     audio: false,
   };
@@ -171,12 +172,18 @@ async function openCamera() {
     videoEl.onloadedmetadata = () => {
       cameraLoadingEl.classList.add('hidden');
       cameraLoadingEl.style.display = '';
-      videoEl.classList.remove('hidden');   // ← WAJIB: tampilkan video (baris ini hilang di v2)
+      videoEl.classList.remove('hidden');
       cameraControlsBar.classList.remove('hidden');
       cameraControlsBar.style.display = 'flex';
-      captureBtn.disabled = true;   // terkunci dulu; dibuka saat posisi pas
-      // Mirror: kamera depan di-mirror, kamera belakang tidak
-      videoEl.style.transform = (facingMode === 'user') ? 'scaleX(-1)' : 'scaleX(1)';
+      captureBtn.disabled = true;
+      // Mirror: kamera depan di-mirror via CSS di #camera-stage supaya
+      // canvas face-guide ikut ter-mirror juga
+      const cameraStageEl = document.getElementById('camera-stage');
+      if (cameraStageEl) {
+        cameraStageEl.style.transform = (facingMode === 'user') ? 'scaleX(-1)' : 'scaleX(1)';
+      }
+      // videoEl transform dikembalikan ke normal (mirror ada di stage)
+      videoEl.style.transform = 'none';
       startFaceGuide();  // mulai loop deteksi oval dinamis
     };
   } catch (err) {
