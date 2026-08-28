@@ -19,13 +19,23 @@ Dikembangkan sebagai bagian dari Penelitian Ilmiah (skripsi), 2026.
 | Item              | Detail                              |
 |-------------------|--------------------------------------|
 | Arsitektur        | DenseNet121 (torchvision, pretrained ImageNet) |
-| Class weight      | 1.5 (kelas "normal")                |
-| Akurasi (test)    | 79.0%                               |
-| F1-score (macro)  | 78.45%                              |
-| Recall kelas Normal | 58.0%                              |
+| Class weight      | 2.0 (kelas "normal")                |
+| Akurasi (test)    | 77.50%                              |
+| F1-score (macro)  | 76.79%                              |
+| Recall kelas Normal | 54.0%                              |
 | Format deploy     | ONNX (FP32), dijalankan via onnxruntime-web (WASM) |
 
-Perbandingan lengkap 9 kombinasi (3 arsitektur × 3 class weight) ada di `notebooks/klafikasi-tipe-kulit-wajah-final.ipynb`.
+### Laporan Klasifikasi (Classification Report)
+
+| Class      | Precision | Recall | F1-Score | Support |
+|------------|-----------|--------|----------|---------|
+| Kombinasi  | 0.8298    | 0.7800 | 0.8041   | 50      |
+| Kering     | 0.7778    | 0.8400 | 0.8077   | 50      |
+| Normal     | 0.7500    | 0.5400 | 0.6279   | 50      |
+| Berminyak  | 0.7460    | 0.9400 | 0.8319   | 50      |
+| Macro Avg  | 0.7759    | 0.7750 | 0.7679   | 200     |
+
+Perbandingan lengkap 9 kombinasi (3 arsitektur × 3 class weight) ada di `notebooks/klasifikasi-tipe-kulit-wajah-final.ipynb`.
 
 ## Struktur Folder
 
@@ -35,7 +45,7 @@ Perbandingan lengkap 9 kombinasi (3 arsitektur × 3 class weight) ada di `notebo
 │   ├── keterbatasan_data.md
 │   └── panduan_jarak_wajah.md
 ├── notebooks/                 # Jupyter notebook training model
-│   └── klafikasi-tipe-kulit-wajah-final.ipynb
+│   └── klasifikasi-tipe-kulit-wajah-final.ipynb
 └── webapp/                    # Kode sumber aplikasi web (frontend)
     ├── css/                   # Styling aplikasi
     ├── js/                    # Logika aplikasi (kamera, inferensi, dsb.)

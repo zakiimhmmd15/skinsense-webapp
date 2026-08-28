@@ -49,7 +49,7 @@ async function loadModel() {
       executionProviders: ['wasm'],
       graphOptimizationLevel: 'all',
     });
-    updateModelStatus('ready', 'Model siap · DenseNet121 · 28 MB · Berjalan di browser');
+    updateModelStatus('ready', 'Model siap · DenseNet121 · 26 MB · Berjalan di browser');
     console.log('[ONNX] Model berhasil dimuat. Input names:', ortSession.inputNames);
   } catch (err) {
     const msg = (err && err.message) ? err.message : String(err);
